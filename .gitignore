@@ -1,7 +1,3 @@
-# ============================================================
-# .gitignore for a Python quant research project on macOS
-# ============================================================
-
 # ---- macOS system files ----
 .DS_Store
 .AppleDouble
