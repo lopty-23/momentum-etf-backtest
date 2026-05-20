@@ -48,7 +48,7 @@ Each ETF in the macro universe is run through an independent trend filter; off-s
 | **Transaction costs** | 5bp round-trip commission, applied on entry and exit                   |
 | **Robustness scan**   | SMA-pair grid from (5, 20) to (50, 200), Sharpe-ratio heatmap          |
 | **Benchmark**         | 60/40 (SPY/AGG) buy-and-hold                                           |
-| **Backtest period**   | TBD — pending data download                                            |
+| **Backtest period**   | 2000-01-03 to 2026-05-20 (~26.4 years)                                 |
 
 ## Results
 
@@ -78,3 +78,90 @@ The strategy accomplishes its primary objective — material drawdown reduction 
 ![Parameter Robustness Heatmap](results/robustness_heatmap.png)
 
 *Sharpe ratio across (fast, slow) SMA pair combinations. Longer slow windows (≥100 days) systematically outperform shorter ones, and the strategy delivers Sharpe > 0.65 across the majority of reasonable parameter combinations. The (10, 30) Backtrader baseline (bold border) sits in the lower half of the parameter space — empirical support for the project's choice of Faber's 200-day filter. No single fragile parameter sweet spot.*
+
+## Project Structure
+
+```
+momentum-etf-backtest/
+├── README.md
+├── LICENSE
+├── .gitignore
+├── requirements.txt
+├── data/
+│   ├── raw/              # Bloomberg risk-free rate (gitignored)
+│   └── processed/        # cached ETF prices (gitignored)
+├── notebooks/
+│   ├── 01_data_exploration.ipynb    # initial data download and inspection
+│   ├── 02_signal_research.ipynb     # signal generation and validation
+│   └── 03_backtest_research.ipynb   # full backtest, metrics, charts
+├── src/
+│   ├── __init__.py
+│   ├── data_loader.py    # ETF prices via yfinance; Bloomberg risk-free rate
+│   ├── signals.py        # SMA filter (Faber) and SMA crossover signal
+│   ├── backtest.py       # monthly-rebalanced backtest engine + benchmark
+│   └── metrics.py        # CAGR, Sharpe, drawdowns, Calmar
+├── results/
+│   ├── equity_curve.png
+│   ├── drawdown.png
+│   └── robustness_heatmap.png
+└── tests/                # placeholder for future unit tests
+```
+
+## Installation
+
+Clone the repository and set up a Python 3.11 virtual environment:
+
+```bash
+git clone https://github.com/lopty-23/momentum-etf-backtest.git
+cd momentum-etf-backtest
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+The risk-free rate analysis requires a Bloomberg USGG3M Index export at `data/raw/risk_free_rate.xlsx` (see Data Sources). All other data is downloaded automatically from Yahoo Finance on first run.
+
+## Usage
+
+**Run the full backtest end-to-end:**
+
+```bash
+python src/backtest.py
+```
+
+This loads cached prices (downloading from Yahoo Finance if no cache exists), loads the risk-free rate from disk, runs the strategy and benchmark, and prints the metrics table.
+
+**Explore interactively via the notebooks:**
+
+```bash
+jupyter lab
+```
+
+Notebooks under `notebooks/` reproduce each stage of the research — data exploration, signal generation, and backtest analysis. They're numbered and intended to be read in order.
+
+**Force a fresh data download:**
+
+```bash
+python src/data_loader.py
+```
+
+Bypasses the cache and re-downloads from Yahoo Finance. Useful when the cached prices are stale.
+
+## Data Sources
+
+- **ETF prices** — daily adjusted closes from Yahoo Finance via [yfinance](https://github.com/ranaroussi/yfinance). Free, automatic via the data loader, cached as Parquet on first use.
+- **Risk-free rate** — Bloomberg's USGG3M Index (US Generic Government 3-Month Yield), exported manually from a Bloomberg terminal and saved to `data/raw/risk_free_rate.xlsx`. The file is excluded from version control because Bloomberg data is licensed and cannot be redistributed. Anyone reproducing this project without Bloomberg access can substitute FRED's `DTB3` series with minor changes to the loader.
+
+## References
+
+- Faber, M. (2007). *A Quantitative Approach to Tactical Asset Allocation.* Journal of Wealth Management. [SSRN 962461](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=962461) — the 10-month / 200-day trend filter underlying this strategy's primary signal.
+- Jegadeesh, N., & Titman, S. (1993). *Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency.* Journal of Finance — the foundational paper on momentum as a risk premium.
+- [mementum/backtrader](https://github.com/mementum/backtrader) — the SMA crossover example this project takes as its inspiration baseline.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Author
+
+Isaiah Hui — [github.com/lopty-23]
